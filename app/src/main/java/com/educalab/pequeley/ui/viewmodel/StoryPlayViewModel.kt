@@ -47,7 +47,7 @@ class StoryPlayViewModel(
 
     private fun persist() {
         viewModelScope.launch {
-            val newBadges = repository.completeStory(userId, roomCode)
+            val newBadges = repository.completeStory(userId, roomCode, storyCode)
             _state.value = _state.value.copy(saved = true, newBadges = newBadges)
         }
     }

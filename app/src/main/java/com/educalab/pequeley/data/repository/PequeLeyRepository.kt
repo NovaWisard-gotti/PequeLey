@@ -90,6 +90,31 @@ class PequeLeyRepository(private val db: PequeLeyDatabase) {
         return newlyUnlocked
     }
 
+    /**
+     * Punto único para otorgar XP: recalcula el nivel a partir del XP total
+     * (nunca de forma incremental) y revisa desbloqueos de salas de inmediato.
+     * Antes esto solo ocurría al completar situaciones, así que una sala podía
+     * quedar bloqueada aunque el nivel ya alcanzara, si el XP llegó por una
+     * historia, un acuerdo o un desafío.
+     */
+    private suspend fun grantXpAndRefreshUnlocks(userId: Long, xp: Int) {
+        if (xp != 0) db.userProfileDao().addXp(userId, xp)
+        val profile = db.userProfileDao().get(userId) ?: return
+        val newLevel = progressEngine.levelForXp(profile.totalXp)
+        if (newLevel != profile.currentLevel) db.userProfileDao().setLevel(userId, newLevel)
+        refreshRoomUnlocks(userId)
+    }
+
+    private suspend fun markCompleted(userId: Long, activityCode: String) {
+        db.completedActivityDao().insert(CompletedActivityEntity(userId = userId, activityCode = activityCode, completedAt = System.currentTimeMillis()))
+    }
+
+    suspend fun getCompletedActivityCodes(userId: Long): Set<String> =
+        db.completedActivityDao().completedCodesForUser(userId).toSet()
+
+    fun observeCompletedActivities(userId: Long): Flow<Set<String>> =
+        db.completedActivityDao().observeCompletedCodes(userId).map { it.toSet() }
+
     // ---------------- Conceptos / Personajes / Responsabilidades / Derechos ----------------
 
     suspend fun getConcepts(): List<LegalConcept> =
@@ -136,18 +161,14 @@ class PequeLeyRepository(private val db: PequeLeyDatabase) {
         val xp = situationEngine.sessionXp(session)
         val gardenImpact = session.consequencesShown.fold(0) { acc, c -> acc + c.gardenImpact }
 
-        db.userProfileDao().addXp(userId, xp)
-        val updatedProfile = db.userProfileDao().get(userId)!!
-        val newLevel = progressEngine.levelForXp(updatedProfile.totalXp)
-        if (newLevel != updatedProfile.currentLevel) db.userProfileDao().setLevel(userId, newLevel)
-
         val existing = db.progressDao().get(userId, session.situation.roomCode)
         val updatedProgress = (existing ?: ProgressEntity(userId = userId, roomCode = session.situation.roomCode, updatedAt = System.currentTimeMillis()))
             .copy(situationsCompleted = (existing?.situationsCompleted ?: 0) + 1, updatedAt = System.currentTimeMillis())
         db.progressDao().upsert(updatedProgress)
 
         applyGardenImpact(userId, gardenImpact)
-        refreshRoomUnlocks(userId)
+        grantXpAndRefreshUnlocks(userId, xp)
+        markCompleted(userId, session.situation.code)
         return evaluateAndAwardBadges(userId)
     }
 
@@ -167,12 +188,13 @@ class PequeLeyRepository(private val db: PequeLeyDatabase) {
     fun startStory(story: StoryModel): StorySession = storyEngine.start(story)
     fun chooseStoryOption(session: StorySession, choice: StoryChoiceModel): StorySession = storyEngine.choose(session, choice)
 
-    suspend fun completeStory(userId: Long, roomCode: String): List<BadgeModel> {
+    suspend fun completeStory(userId: Long, roomCode: String, storyCode: String): List<BadgeModel> {
         val existing = db.progressDao().get(userId, roomCode)
         val updated = (existing ?: ProgressEntity(userId = userId, roomCode = roomCode, updatedAt = System.currentTimeMillis()))
             .copy(storiesCompleted = (existing?.storiesCompleted ?: 0) + 1, updatedAt = System.currentTimeMillis())
         db.progressDao().upsert(updated)
-        db.userProfileDao().addXp(userId, 8)
+        grantXpAndRefreshUnlocks(userId, 8)
+        markCompleted(userId, storyCode)
         return evaluateAndAwardBadges(userId)
     }
 
@@ -200,8 +222,8 @@ class PequeLeyRepository(private val db: PequeLeyDatabase) {
         val updated = (existing ?: ProgressEntity(userId = userId, roomCode = roomCode, updatedAt = System.currentTimeMillis()))
             .copy(agreementsCreated = (existing?.agreementsCreated ?: 0) + 1, updatedAt = System.currentTimeMillis())
         db.progressDao().upsert(updated)
-        db.userProfileDao().addXp(userId, 10)
         applyGardenImpact(userId, 5)
+        grantXpAndRefreshUnlocks(userId, 10)
 
         return built.copy(id = agreementId)
     }
@@ -221,7 +243,8 @@ class PequeLeyRepository(private val db: PequeLeyDatabase) {
             val updated = (existing ?: ProgressEntity(userId = userId, roomCode = roomCode, updatedAt = System.currentTimeMillis()))
                 .copy(challengesCompleted = (existing?.challengesCompleted ?: 0) + 1, updatedAt = System.currentTimeMillis())
             db.progressDao().upsert(updated)
-            db.userProfileDao().addXp(userId, 12)
+            grantXpAndRefreshUnlocks(userId, 12)
+            markCompleted(userId, challengeCode)
         }
         return evaluateAndAwardBadges(userId)
     }
@@ -233,12 +256,16 @@ class PequeLeyRepository(private val db: PequeLeyDatabase) {
     private suspend fun applyGardenImpact(userId: Long, impact: Int) {
         val current = db.gardenDao().get(userId) ?: GardenProgressEntity(userId = userId, lastUpdated = System.currentTimeMillis())
         val currentState = current.toModel()
-        val accumulatedRaw = currentState.growthLevel * 10
-        val newState = rewardEngine.applyGardenImpact(currentState, impact, accumulatedRaw)
+        // El progreso en bruto se guarda tal cual (current.accumulatedImpact); antes se
+        // reconstruía como growthLevel*10, lo que descartaba todo el avance parcial
+        // dentro del nivel actual y hacía que el jardín pareciera no cambiar nunca.
+        val newState = rewardEngine.applyGardenImpact(currentState, impact, current.accumulatedImpact)
         db.gardenDao().upsert(
             current.copy(
                 growthLevel = newState.growthLevel, flowers = newState.flowers,
-                paths = newState.paths, animals = newState.animals, lastUpdated = System.currentTimeMillis()
+                paths = newState.paths, animals = newState.animals,
+                accumulatedImpact = (current.accumulatedImpact + impact).coerceAtLeast(0),
+                lastUpdated = System.currentTimeMillis()
             )
         )
     }

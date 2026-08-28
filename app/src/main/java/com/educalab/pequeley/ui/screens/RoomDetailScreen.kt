@@ -1,6 +1,7 @@
 package com.educalab.pequeley.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -84,14 +85,14 @@ fun RoomDetailScreen(
             if (state.situations.isNotEmpty()) {
                 item { SectionHeader("Situaciones para vivir", "Observa, decide y descubre qué ocurre.") }
                 items(state.situations) { situation ->
-                    SituationRow(situation) { onOpenSituation(situation.code) }
+                    SituationRow(situation, completed = situation.code in state.completedCodes) { onOpenSituation(situation.code) }
                 }
             }
 
             if (state.stories.isNotEmpty()) {
                 item { SectionHeader("Historias interactivas") }
                 items(state.stories) { story ->
-                    StoryRow(story) { onOpenStory(story.code) }
+                    StoryRow(story, completed = story.code in state.completedCodes) { onOpenStory(story.code) }
                 }
             }
 
@@ -110,8 +111,12 @@ fun RoomDetailScreen(
             }
 
             if (state.challenges.isNotEmpty()) {
-                item { SectionHeader("Desafíos de justicia cotidiana") }
-                items(state.challenges) { challenge -> ChallengeRow(challenge) }
+                item { SectionHeader("Desafíos de justicia cotidiana", "Toca un desafío para vivirlo y decidir qué hacer.") }
+                items(state.challenges) { challenge ->
+                    ChallengeRow(challenge, completed = challenge.situationRef in state.completedCodes) {
+                        onOpenSituation(challenge.situationRef)
+                    }
+                }
             }
 
             if (state.room?.code == "acuerdos") {
@@ -149,12 +154,16 @@ private fun ConceptCard(concept: LegalConcept) {
 }
 
 @Composable
-private fun SituationRow(situation: Situation, onClick: () -> Unit) {
+private fun SituationRow(situation: Situation, completed: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.White)
+            .background(if (completed) Color(0xFFEAF7EF) else Color.White)
+            .then(
+                if (completed) Modifier.border(1.5.dp, Color(0xFF6FCF97), RoundedCornerShape(16.dp))
+                else Modifier
+            )
             .clickable(onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -165,16 +174,21 @@ private fun SituationRow(situation: Situation, onClick: () -> Unit) {
             Text(situation.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(situation.summary, style = MaterialTheme.typography.bodyMedium, maxLines = 2)
         }
+        if (completed) CompletedBadge()
     }
 }
 
 @Composable
-private fun StoryRow(story: StoryModel, onClick: () -> Unit) {
+private fun StoryRow(story: StoryModel, completed: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFFFDF1E3))
+            .background(if (completed) Color(0xFFEAF7EF) else Color(0xFFFDF1E3))
+            .then(
+                if (completed) Modifier.border(1.5.dp, Color(0xFF6FCF97), RoundedCornerShape(16.dp))
+                else Modifier
+            )
             .clickable(onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -185,6 +199,20 @@ private fun StoryRow(story: StoryModel, onClick: () -> Unit) {
             Text(story.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(story.summary, style = MaterialTheme.typography.bodyMedium, maxLines = 2)
         }
+        if (completed) CompletedBadge()
+    }
+}
+
+/** Marca verde de "ya completado": el niño puede seguir volviendo a jugarlo. */
+@Composable
+private fun CompletedBadge() {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(Color(0xFF6FCF97))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text("✅", style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -232,12 +260,17 @@ private fun RightLessonRow(lesson: RightLessonModel) {
 }
 
 @Composable
-private fun ChallengeRow(challenge: ChallengeModel) {
+private fun ChallengeRow(challenge: ChallengeModel, completed: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFFF2EAF7))
+            .background(if (completed) Color(0xFFEAF7EF) else Color(0xFFF2EAF7))
+            .then(
+                if (completed) Modifier.border(1.5.dp, Color(0xFF6FCF97), RoundedCornerShape(16.dp))
+                else Modifier
+            )
+            .clickable(onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -247,6 +280,7 @@ private fun ChallengeRow(challenge: ChallengeModel) {
             Text(challenge.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(challenge.description, style = MaterialTheme.typography.bodyMedium)
         }
+        if (completed) CompletedBadge() else Text("▶️", style = MaterialTheme.typography.titleMedium)
     }
 }
 

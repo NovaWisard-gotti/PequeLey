@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -56,15 +57,7 @@ fun SituationPlayScreen(viewModel: SituationPlayViewModel, onBack: () -> Unit, o
         ) {
             if (!session.finished) {
                 state.lastConsequenceText?.let { text ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFFFFF7EC))
-                            .padding(12.dp)
-                    ) {
-                        Text(text, style = MaterialTheme.typography.bodyMedium)
-                    }
+                    ConsequenceFeedback(text = text, isPositive = state.lastConsequencePositive)
                     Spacer(Modifier.height(16.dp))
                 }
 
@@ -93,14 +86,7 @@ fun SituationPlayScreen(viewModel: SituationPlayViewModel, onBack: () -> Unit, o
                 Text("¡Historia completada!", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(12.dp))
                 state.lastConsequenceText?.let {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(Color(0xFFFFF7EC))
-                            .padding(16.dp)
-                    ) {
-                        Text(it, style = MaterialTheme.typography.bodyLarge, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                    }
+                    ConsequenceFeedback(text = it, isPositive = state.lastConsequencePositive, centered = true)
                 }
                 Spacer(Modifier.weight(1f))
                 if (state.newBadges.isNotEmpty()) {
@@ -110,6 +96,38 @@ fun SituationPlayScreen(viewModel: SituationPlayViewModel, onBack: () -> Unit, o
                 PequePrimaryButton(text = "Volver a la sala", onClick = onFinished, modifier = Modifier.fillMaxWidth())
             }
         }
+    }
+}
+
+/**
+ * Muestra la reflexión tras una decisión, diferenciando visualmente si el
+ * resultado fue positivo (verde) o si conviene intentarlo de otra manera
+ * (cálido/naranja) — nunca con un simple "correcto/incorrecto".
+ */
+@Composable
+private fun ConsequenceFeedback(text: String, isPositive: Boolean?, centered: Boolean = false) {
+    val (bgColor, borderColor, emoji) = when (isPositive) {
+        true -> Triple(Color(0xFFEAF7EF), Color(0xFF6FCF97), "🌟")
+        false -> Triple(Color(0xFFFCEFE3), Color(0xFFE2725B), "💡")
+        null -> Triple(Color(0xFFFFF7EC), Color(0xFFE8D9B5), "💬")
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(if (centered) 18.dp else 16.dp))
+            .background(bgColor)
+            .border(1.5.dp, borderColor, RoundedCornerShape(if (centered) 18.dp else 16.dp))
+            .padding(if (centered) 16.dp else 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(emoji, style = MaterialTheme.typography.headlineSmall)
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text,
+            style = if (centered) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodyMedium,
+            textAlign = if (centered) androidx.compose.ui.text.style.TextAlign.Center else androidx.compose.ui.text.style.TextAlign.Start,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 

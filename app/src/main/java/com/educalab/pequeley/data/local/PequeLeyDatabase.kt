@@ -38,9 +38,10 @@ import kotlinx.coroutines.launch
         BadgeEntity::class,
         UserBadgeEntity::class,
         GardenProgressEntity::class,
-        UnlockedDecorationEntity::class
+        UnlockedDecorationEntity::class,
+        CompletedActivityEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class PequeLeyDatabase : RoomDatabase() {
@@ -59,6 +60,7 @@ abstract class PequeLeyDatabase : RoomDatabase() {
     abstract fun progressDao(): ProgressDao
     abstract fun badgeDao(): BadgeDao
     abstract fun gardenDao(): GardenDao
+    abstract fun completedActivityDao(): CompletedActivityDao
 
     companion object {
         private const val DB_NAME = "pequeley.db"
@@ -73,6 +75,7 @@ abstract class PequeLeyDatabase : RoomDatabase() {
 
         private fun build(context: Context): PequeLeyDatabase {
             return Room.databaseBuilder(context.applicationContext, PequeLeyDatabase::class.java, DB_NAME)
+                .fallbackToDestructiveMigration()
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

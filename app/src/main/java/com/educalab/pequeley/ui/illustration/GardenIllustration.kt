@@ -2,23 +2,34 @@ package com.educalab.pequeley.ui.illustration
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.educalab.pequeley.domain.model.GardenState
 
 /**
  * El Jardín del Respeto (Módulo 7): NO es una barra de progreso.
  * Cada acción positiva del niño (flores/caminos/animales) modifica
- * visualmente la escena, mostrando crecimiento real y acumulado.
+ * visualmente la escena usando emojis reconocibles, mostrando crecimiento
+ * real y acumulado en vez de formas geométricas abstractas.
  */
 @Composable
 fun GardenIllustration(garden: GardenState, modifier: Modifier = Modifier) {
@@ -27,51 +38,65 @@ fun GardenIllustration(garden: GardenState, modifier: Modifier = Modifier) {
         animationSpec = tween(600),
         label = "gardenGrowth"
     )
-    Canvas(modifier = modifier.fillMaxWidth().height(180.dp)) {
-        val w = size.width; val h = size.height
+    val isEmpty = garden.flowers == 0 && garden.paths == 0 && garden.animals == 0
 
-        // Cielo y pasto base
-        drawRect(Color(0xFFEFF7EE), Offset.Zero, Size(w, h * 0.75f))
-        drawRect(Color(0xFF9AD8A0), Offset(0f, h * 0.72f), Size(w, h * 0.28f))
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .clip(RoundedCornerShape(20.dp))
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxWidth().weight(0.62f).background(Color(0xFFEFF7EE)))
+            Box(Modifier.fillMaxWidth().weight(0.38f).background(Color(0xFF9AD8A0)))
+        }
 
-        // Caminos (según garden.paths)
-        repeat(garden.paths.coerceAtMost(6)) { i ->
-            drawRoundRect(
-                Color(0xFFE8D9B5),
-                Offset(w * (0.1f + i * 0.14f), h * 0.78f),
-                Size(w * 0.08f, h * 0.16f),
-                CornerRadius(6f, 6f)
+        Text(
+            "☀️",
+            fontSize = (20 + animatedGrowth * 18).sp,
+            modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)
+        )
+
+        if (isEmpty) {
+            Text(
+                "🌱 Aquí crecerá tu jardín con cada buena decisión",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.Center).padding(horizontal = 24.dp)
             )
+        } else {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp, start = 12.dp, end = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                EmojiWrapRows(emojiSequence(garden.flowers, FLOWER_EMOJIS))
+                Spacer(Modifier.height(2.dp))
+                EmojiWrapRows(emojiSequence(garden.animals, ANIMAL_EMOJIS))
+                Spacer(Modifier.height(2.dp))
+                EmojiWrapRows(emojiSequence(garden.paths, PATH_EMOJIS))
+            }
         }
-
-        // Flores (según garden.flowers)
-        repeat(garden.flowers.coerceAtMost(10)) { i ->
-            val fx = w * (0.08f + (i % 5) * 0.19f)
-            val fy = h * (0.6f - (i / 5) * 0.14f)
-            drawFlower(fx, fy, w * 0.045f, PaletteFactory.forSeed(i + 3).base)
-        }
-
-        // Animalitos sencillos (según garden.animals) — círculos con orejas
-        repeat(garden.animals.coerceAtMost(6)) { i ->
-            val ax = w * (0.15f + i * 0.15f)
-            val ay = h * 0.68f
-            drawCircle(Color(0xFFF6D2B5), w * 0.04f, Offset(ax, ay))
-            drawCircle(Color(0xFFF6D2B5), w * 0.018f, Offset(ax - w * 0.03f, ay - w * 0.03f))
-            drawCircle(Color(0xFFF6D2B5), w * 0.018f, Offset(ax + w * 0.03f, ay - w * 0.03f))
-        }
-
-        // Sol que crece de tamaño con el progreso general del jardín
-        drawCircle(Color(0xFFF2C14E), w * (0.06f + animatedGrowth * 0.05f), Offset(w * 0.85f, h * 0.15f))
     }
 }
 
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFlower(x: Float, y: Float, r: Float, color: Color) {
-    repeat(5) { i ->
-        val angle = (i * 72.0) * Math.PI / 180.0
-        val px = x + (r * kotlin.math.cos(angle)).toFloat()
-        val py = y + (r * kotlin.math.sin(angle)).toFloat()
-        drawCircle(color, r * 0.7f, Offset(px, py))
+private val FLOWER_EMOJIS = listOf("🌸", "🌼", "🌻", "🌷", "🌺")
+private val ANIMAL_EMOJIS = listOf("🐰", "🐦", "🦋", "🐿️", "🐝")
+private val PATH_EMOJIS = listOf("🟫")
+
+private fun emojiSequence(count: Int, palette: List<String>): List<String> =
+    (0 until count.coerceIn(0, 15)).map { palette[it % palette.size] }
+
+@Composable
+private fun EmojiWrapRows(emojis: List<String>, modifier: Modifier = Modifier) {
+    if (emojis.isEmpty()) return
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        emojis.chunked(6).forEach { chunk ->
+            Row {
+                chunk.forEach { emoji -> Text(emoji, fontSize = 24.sp, modifier = Modifier.padding(horizontal = 2.dp)) }
+            }
+        }
     }
-    drawCircle(Color(0xFFFFE9A8), r * 0.6f, Offset(x, y))
-    drawLine(Color(0xFF6FCF97), Offset(x, y + r * 0.5f), Offset(x, y + r * 2.2f), strokeWidth = 4f)
 }

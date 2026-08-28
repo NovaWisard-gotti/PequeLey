@@ -21,6 +21,7 @@ data class RoomDetailState(
     val challenges: List<ChallengeModel> = emptyList(),
     val agreements: List<AgreementModel> = emptyList(),
     val garden: GardenState = GardenState(),
+    val completedCodes: Set<String> = emptySet(),
     val agreementSymbols: List<AgreementSymbol> = AgreementSymbols.ALL,
     val agreementBuilderSelection: List<String> = emptyList(),
     val agreementBuildError: String? = null,
@@ -76,6 +77,11 @@ class RoomDetailViewModel(
         viewModelScope.launch {
             repository.observeGarden(userId).collect { garden ->
                 _state.value = _state.value.copy(garden = garden)
+            }
+        }
+        viewModelScope.launch {
+            repository.observeCompletedActivities(userId).collect { codes ->
+                _state.value = _state.value.copy(completedCodes = codes)
             }
         }
     }

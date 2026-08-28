@@ -15,6 +15,7 @@ data class SituationPlayState(
     val loading: Boolean = true,
     val session: SituationSession? = null,
     val lastConsequenceText: String? = null,
+    val lastConsequencePositive: Boolean? = null,
     val saved: Boolean = false,
     val newBadges: List<BadgeModel> = emptyList()
 )
@@ -46,8 +47,13 @@ class SituationPlayViewModel(
     fun choose(decision: DecisionModel) {
         val session = _state.value.session ?: return
         val updated = repository.chooseSituationDecision(session, decision)
-        val consequenceText = updated.consequencesShown.lastOrNull()?.let { repository.reflectionFor(it) }
-        _state.value = _state.value.copy(session = updated, lastConsequenceText = consequenceText)
+        val lastConsequence = updated.consequencesShown.lastOrNull()
+        val consequenceText = lastConsequence?.let { repository.reflectionFor(it) }
+        _state.value = _state.value.copy(
+            session = updated,
+            lastConsequenceText = consequenceText,
+            lastConsequencePositive = lastConsequence?.isPositive
+        )
         if (updated.finished) persist(updated)
     }
 

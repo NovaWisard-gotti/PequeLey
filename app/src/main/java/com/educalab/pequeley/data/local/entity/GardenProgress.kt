@@ -17,5 +17,7 @@ data class GardenProgressEntity(
     val flowers: Int = 0,
     val paths: Int = 0,
     val animals: Int = 0,
+    /** Puntos de impacto acumulados en bruto (incluye el progreso parcial dentro del nivel actual). */
+    val accumulatedImpact: Int = 0,
     val lastUpdated: Long
 )
