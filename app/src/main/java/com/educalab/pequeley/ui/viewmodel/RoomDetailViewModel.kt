@@ -46,7 +46,8 @@ class RoomDetailViewModel(
         viewModelScope.launch {
             val rooms = repository.getRooms(userId)
             val room = rooms.firstOrNull { it.code == roomCode }
-            val situations = repository.getSituationsForRoom(roomCode)
+            val ownSituations = repository.getSituationsForRoom(roomCode)
+            var situations = ownSituations
 
             var stories = emptyList<StoryModel>()
             var responsibilityTasks = emptyList<ResponsibilityTaskModel>()
@@ -63,7 +64,15 @@ class RoomDetailViewModel(
                     concepts = repository.getConcepts().filter { it.code in setOf("derecho", "respeto", "cuidado") }
                 }
                 "acuerdos" -> agreements = repository.getAgreements(userId)
-                "convivencia" -> challenges = repository.getChallenges().filter { it.situationRef.startsWith("sit_") }
+                "convivencia" -> {
+                    // Los desafíos son las propias situaciones del patio presentadas
+                    // como retos. Se muestran solo aquí (nunca también en "Situaciones
+                    // para vivir" de esta sala) y solo los que de verdad pertenecen a
+                    // Convivencia, para no repetir ejercicios ya vividos en otras salas.
+                    val ownCodes = ownSituations.map { it.code }.toSet()
+                    challenges = repository.getChallenges().filter { it.situationRef in ownCodes }
+                    situations = emptyList()
+                }
                 "reglas" -> concepts = repository.getConcepts().filter { it.code in setOf("regla", "acuerdo") }
                 "decisiones" -> concepts = repository.getConcepts().filter { it.code in setOf("consecuencia", "solucion") }
             }
