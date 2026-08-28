@@ -17,6 +17,9 @@ class ProgressEngine {
 
         /** Umbral de situaciones completadas en una sala para considerarla "dominada". */
         const val MASTERY_THRESHOLD = 5
+
+        /** Umbral de situaciones completadas en una sala para considerarla "completada". */
+        const val COMPLETION_THRESHOLD = 3
     }
 
     fun levelForXp(totalXp: Int): Int {
@@ -35,16 +38,34 @@ class ProgressEngine {
         return xpIntoLevel.toFloat() / XP_PER_LEVEL.toFloat()
     }
 
-    /** Decide si una sala debe pasar de bloqueada a disponible dado el nivel actual. */
-    fun shouldUnlock(room: HouseRoom, currentLevel: Int): Boolean =
-        !room.unlocked && currentLevel >= room.requiredLevelToUnlock
+    /**
+     * Decide si una sala debe pasar de bloqueada a disponible. En vez de un
+     * umbral de XP desconectado del contenido real (que podía dejar al niño
+     * sin forma de avanzar si ya había completado todo lo disponible), una
+     * sala se desbloquea cuando TODAS las salas de niveles anteriores ya
+     * están completadas — así terminar lo accesible siempre abre lo
+     * siguiente.
+     */
+    fun shouldUnlock(room: HouseRoom, allRooms: List<HouseRoom>, progressByRoom: Map<String, RoomProgress>): Boolean {
+        if (room.unlocked) return false
+        val prerequisites = allRooms.filter { it.code != room.code && it.requiredLevelToUnlock < room.requiredLevelToUnlock }
+        if (prerequisites.isEmpty()) return true
+        return prerequisites.all { isRoomCompleted(progressByRoom[it.code]) }
+    }
+
+    /** Salas aún sin completar que bloquean el desbloqueo de [room] (para explicarle al niño qué falta). */
+    fun pendingPrerequisites(room: HouseRoom, allRooms: List<HouseRoom>, progressByRoom: Map<String, RoomProgress>): List<HouseRoom> =
+        allRooms.filter { it.code != room.code && it.requiredLevelToUnlock < room.requiredLevelToUnlock && !isRoomCompleted(progressByRoom[it.code]) }
+
+    private fun isRoomCompleted(progress: RoomProgress?): Boolean =
+        (progress?.situationsCompleted ?: 0) >= COMPLETION_THRESHOLD
 
     fun stateFor(room: HouseRoom, progress: RoomProgress?): RoomModuleState {
         if (!room.unlocked) return RoomModuleState.LOCKED
         val p = progress ?: return RoomModuleState.AVAILABLE
         return when {
             p.masteryLevel >= MASTERY_THRESHOLD -> RoomModuleState.MASTERED
-            p.situationsCompleted > 0 && p.situationsCompleted >= 3 -> RoomModuleState.COMPLETED
+            p.situationsCompleted >= COMPLETION_THRESHOLD -> RoomModuleState.COMPLETED
             p.situationsCompleted > 0 -> RoomModuleState.STARTED
             else -> RoomModuleState.AVAILABLE
         }

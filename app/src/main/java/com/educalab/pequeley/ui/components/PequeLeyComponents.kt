@@ -42,7 +42,7 @@ fun RoomDoorCard(room: HouseRoom, state: RoomModuleState, onClick: () -> Unit, m
             .clip(RoundedCornerShape(24.dp))
             .background(Color.White)
             .border(2.dp, Color(android.graphics.Color.parseColor(room.colorHex)).copy(alpha = 0.4f), RoundedCornerShape(24.dp))
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(onClick = onClick)
             .padding(14.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

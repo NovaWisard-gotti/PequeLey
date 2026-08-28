@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.educalab.pequeley.domain.model.HouseRoom
 import com.educalab.pequeley.domain.model.Mood
+import com.educalab.pequeley.domain.model.RoomModuleState
 import com.educalab.pequeley.ui.components.LexiBubble
 import com.educalab.pequeley.ui.components.RoomDoorCard
 import com.educalab.pequeley.ui.components.StarProgressBar
@@ -41,6 +42,7 @@ fun HouseScreen(
     }
 
     val profile = state.profile!!
+    var lockedRoomInfo by remember { mutableStateOf<HouseRoom?>(null) }
     val lexiMessage = remember(state.houseProgress) {
         when {
             state.houseProgress < 0.2f -> "Elige una puerta y descubramos qué historia hay detrás."
@@ -113,12 +115,39 @@ fun HouseScreen(
             modifier = Modifier.weight(1f)
         ) {
             items(state.rooms.sortedBy { it.orderIndex }) { room: HouseRoom ->
+                val roomState = viewModel.stateForRoom(room)
                 RoomDoorCard(
                     room = room,
-                    state = viewModel.stateForRoom(room),
-                    onClick = { onOpenRoom(room.code) }
+                    state = roomState,
+                    onClick = {
+                        if (roomState == RoomModuleState.LOCKED) {
+                            lockedRoomInfo = room
+                        } else {
+                            onOpenRoom(room.code)
+                        }
+                    }
                 )
             }
         }
+    }
+
+    lockedRoomInfo?.let { room ->
+        val pending = viewModel.pendingPrerequisitesFor(room)
+        AlertDialog(
+            onDismissRequest = { lockedRoomInfo = null },
+            title = { Text("${room.name} está bloqueada") },
+            text = {
+                Text(
+                    if (pending.isEmpty()) {
+                        "¡Ya casi! Vuelve a jugar cualquier situación para terminar de desbloquear esta sala."
+                    } else {
+                        "Para abrir esta sala primero completa: ${pending.joinToString(", ") { it.name }}."
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { lockedRoomInfo = null }) { Text("Entendido") }
+            }
+        )
     }
 }

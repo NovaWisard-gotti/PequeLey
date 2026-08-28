@@ -74,6 +74,10 @@ class AppViewModel(private val repository: PequeLeyRepository) : ViewModel() {
     fun stateForRoom(room: HouseRoom): RoomModuleState =
         progressEngine.stateFor(room, _uiState.value.roomProgress[room.code])
 
+    /** Salas que el niño aún debe completar para desbloquear [room] (para explicarle qué le falta). */
+    fun pendingPrerequisitesFor(room: HouseRoom): List<HouseRoom> =
+        progressEngine.pendingPrerequisites(room, _uiState.value.rooms, _uiState.value.roomProgress)
+
     fun consumeUnlockNotice() {
         _uiState.value = _uiState.value.copy(newlyUnlockedRoom = null)
     }

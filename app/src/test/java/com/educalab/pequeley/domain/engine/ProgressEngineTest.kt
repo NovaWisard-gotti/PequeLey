@@ -38,16 +38,44 @@ class ProgressEngineTest {
     }
 
     @Test
-    fun `shouldUnlock true when level meets requirement`() {
+    fun `shouldUnlock true when there are no prerequisite rooms`() {
+        val room = HouseRoom("reglas", "Sala", "desc", 0, 1, "#FFAA00", requiredLevelToUnlock = 1, unlocked = false)
+        assertTrue(engine.shouldUnlock(room, listOf(room), emptyMap()))
+    }
+
+    @Test
+    fun `shouldUnlock true when all prerequisite rooms are completed`() {
+        val prereq = HouseRoom("reglas", "Reglas", "desc", 0, 1, "#FFAA00", requiredLevelToUnlock = 1, unlocked = true)
         val room = HouseRoom("acuerdos", "Sala", "desc", 1, 1, "#FFAA00", requiredLevelToUnlock = 2, unlocked = false)
-        assertTrue(engine.shouldUnlock(room, 2))
-        assertTrue(engine.shouldUnlock(room, 3))
+        val progress = mapOf("reglas" to RoomProgress("reglas", situationsCompleted = 3))
+        assertTrue(engine.shouldUnlock(room, listOf(prereq, room), progress))
+    }
+
+    @Test
+    fun `shouldUnlock false when a prerequisite room is not yet completed`() {
+        val prereq = HouseRoom("reglas", "Reglas", "desc", 0, 1, "#FFAA00", requiredLevelToUnlock = 1, unlocked = true)
+        val room = HouseRoom("acuerdos", "Sala", "desc", 1, 1, "#FFAA00", requiredLevelToUnlock = 2, unlocked = false)
+        val progress = mapOf("reglas" to RoomProgress("reglas", situationsCompleted = 1))
+        assertFalse(engine.shouldUnlock(room, listOf(prereq, room), progress))
     }
 
     @Test
     fun `shouldUnlock false when already unlocked`() {
         val room = HouseRoom("acuerdos", "Sala", "desc", 1, 1, "#FFAA00", requiredLevelToUnlock = 1, unlocked = true)
-        assertFalse(engine.shouldUnlock(room, 5))
+        assertFalse(engine.shouldUnlock(room, listOf(room), emptyMap()))
+    }
+
+    @Test
+    fun `pendingPrerequisites lists only unfinished prerequisite rooms`() {
+        val doneRoom = HouseRoom("reglas", "Reglas", "desc", 0, 1, "#FFAA00", requiredLevelToUnlock = 1, unlocked = true)
+        val pendingRoom = HouseRoom("derechos", "Derechos", "desc", 1, 1, "#FFAA00", requiredLevelToUnlock = 1, unlocked = true)
+        val room = HouseRoom("acuerdos", "Sala", "desc", 2, 1, "#FFAA00", requiredLevelToUnlock = 2, unlocked = false)
+        val progress = mapOf(
+            "reglas" to RoomProgress("reglas", situationsCompleted = 3),
+            "derechos" to RoomProgress("derechos", situationsCompleted = 1)
+        )
+        val pending = engine.pendingPrerequisites(room, listOf(doneRoom, pendingRoom, room), progress)
+        assertEquals(listOf("derechos"), pending.map { it.code })
     }
 
     @Test

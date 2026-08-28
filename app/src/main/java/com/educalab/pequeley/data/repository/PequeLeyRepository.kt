@@ -76,13 +76,13 @@ class PequeLeyRepository(private val db: PequeLeyDatabase) {
         return progressEngine.overallHouseProgress(rooms, progresses)
     }
 
-    /** Revisa el nivel actual del usuario y desbloquea salas nuevas si corresponde. */
+    /** Revisa el progreso del usuario y desbloquea salas nuevas si ya completó las anteriores. */
     suspend fun refreshRoomUnlocks(userId: Long): List<HouseRoom> {
-        val profile = db.userProfileDao().get(userId) ?: return emptyList()
         val rooms = getRooms(userId)
+        val progressByRoom = allRoomProgress(userId).associateBy { it.roomCode }
         val newlyUnlocked = mutableListOf<HouseRoom>()
         rooms.forEach { room ->
-            if (progressEngine.shouldUnlock(room, profile.currentLevel)) {
+            if (progressEngine.shouldUnlock(room, rooms, progressByRoom)) {
                 db.roomUnlockDao().upsert(RoomUnlockEntity(userId = userId, roomCode = room.code, unlocked = true, unlockedAt = System.currentTimeMillis()))
                 newlyUnlocked += room
             }
