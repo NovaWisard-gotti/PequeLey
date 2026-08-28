@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Casa -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,28 L82,50 L82,80 L26,80 L26,50 Z" />
+    <!-- Tejado -->
+    <path
+        android:fillColor="#5B4636"
+        android:pathData="M20,52 L54,24 L88,52 L82,52 L54,30 L26,52 Z" />
+    <!-- Puerta -->
+    <path
+        android:fillColor="#F6A93B"
+        android:pathData="M46,80 L46,60 C46,54 62,54 62,60 L62,80 Z" />
+    <!-- Ventana redonda -->
+    <path
+        android:fillColor="#8FD4C1"
+        android:pathData="M48,46 A6,6 0 1,0 60,46 A6,6 0 1,0 48,46 Z" />
+    <!-- Pomo puerta -->
+    <path
+        android:fillColor="#5B4636"
+        android:pathData="M56.4,70 A1.6,1.6 0 1,0 59.6,70 A1.6,1.6 0 1,0 56.4,70 Z" />
+</vector>

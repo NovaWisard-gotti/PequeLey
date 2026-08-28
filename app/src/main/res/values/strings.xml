@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PequeLey</string>
+    <string name="app_tagline">La Casa de las Buenas Decisiones</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_1_title">Bienvenido a PequeLey</string>
+    <string name="onboarding_1_body">Una gran casa llena de historias te está esperando. Cada habitación esconde algo por descubrir.</string>
+    <string name="onboarding_2_title">Conoce a Lexi</string>
+    <string name="onboarding_2_body">Lexi es tu guía. Le encanta escuchar, hacer preguntas y ayudarte a encontrar buenas soluciones.</string>
+    <string name="onboarding_3_title">Explora, decide y aprende</string>
+    <string name="onboarding_3_body">En cada habitación vivirás pequeñas historias. Tus decisiones cambian lo que pasa después.</string>
+    <string name="onboarding_4_title">Todo queda guardado</string>
+    <string name="onboarding_4_body">Tu progreso se guarda en este dispositivo. No necesitas internet ni tu nombre real: elige un alias y un avatar.</string>
+    <string name="onboarding_cta_next">Siguiente</string>
+    <string name="onboarding_cta_start">Entrar a la casa</string>
+
+    <!-- Perfil -->
+    <string name="profile_pick_alias">Elige tu alias</string>
+    <string name="profile_pick_avatar">Elige tu avatar</string>
+    <string name="profile_confirm">¡Listo!</string>
+</resources>
